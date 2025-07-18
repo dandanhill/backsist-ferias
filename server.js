@@ -1,77 +1,126 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
+import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
+import { getGerencias, getTodosFuncionarios } from './src/controllers/gerenciaController.js';
+import feriasRoutes from './src/routes/feriasRoutes.js';
+import dashboardRoutes from './src/routes/dashboardRoutes.js';
+import gerenciaRoutes from './src/routes/gerenciaRoutes.js';
 
-const app = express();
 const prisma = new PrismaClient();
-const saltRounds = 10;
+const app = express();
 
+// Middlewares
 app.use(express.json());
+app.use(cors({
+  origin: 'http://localhost:3000',
+  methods: ['GET', 'POST'],
+  credentials: true
+}));
 
-// Rota POST para cadastro de usuário
-app.post('/register', async (req, res) => {
-  const { matricula, senha, nome, email } = req.body;
-
-  if (!matricula || !senha || !nome || !email) {
-    return res.status(400).json({ error: 'Todos os campos são obrigatórios.' });
-  }
-
-  try {
-    // Criptografa a senha
-    const hashedPassword = await bcrypt.hash(senha, saltRounds);
-
-    // Cria o usuário no banco de dados
-    const user = await prisma.cadastro.create({
-      data: {
-        matricula,
-        senha: hashedPassword, // Senha criptografada
-        nome,
-        email,
-      },
-    });
-
-    res.status(201).json({ message: 'Usuário criado com sucesso!', user });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Erro ao criar o usuário. Tente novamente.' });
-  }
+// Logger
+app.use((req, res, next) => {
+  console.log(`[${req.method}] ${req.url}`);
+  next();
 });
 
-// Rota POST para login de usuário
+// Rotas principais
+app.use('/solicitar-ferias', feriasRoutes);
+app.use('/tela', dashboardRoutes);
+app.use('/gerencias', gerenciaRoutes);
+
+// ------------------------
+// ROTA DE LOGIN
+// ------------------------
 app.post('/login', async (req, res) => {
   const { matricula, senha } = req.body;
 
   if (!matricula || !senha) {
-    return res.status(400).json({ error: 'Por favor, forneça matrícula e senha.' });
+    return res.status(400).json({ error: 'Preencha todos os campos.' });
   }
 
   try {
-    // Procura o usuário no banco de dados pela matrícula
     const user = await prisma.cadastro.findUnique({
-      where: { matricula },
+      where: { matricula: String(matricula) },
     });
 
-    if (!user) {
-      return res.status(400).json({ error: 'Usuário não encontrado.' });
+    if (!user || !user.senha) {
+      return res.status(401).json({ error: 'Usuário ou senha inválidos.' });
     }
 
-    // Compara a senha fornecida com a senha criptografada no banco
-    const isPasswordValid = await bcrypt.compare(senha, user.senha);
+    const senhaCorreta = await bcrypt.compare(senha, user.senha);
 
-    if (!isPasswordValid) {
-      return res.status(400).json({ error: 'Senha incorreta.' });
+    if (!senhaCorreta) {
+      return res.status(401).json({ error: 'Senha incorreta.' });
     }
 
-    // Retorna os dados do usuário autenticado (sem a senha)
-    const { senha: userPassword, ...userData } = user;
-    res.status(200).json(userData);
+    const isSenhaPadrao = senha === String(matricula);
+
+    // Oculta a senha no retorno
+    const { senha: _, ...userWithoutPassword } = user;
+
+    return res.status(200).json({
+      message: 'Login realizado com sucesso.',
+      user: userWithoutPassword,
+      senhaPadrao: isSenhaPadrao,
+    });
+
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Erro ao tentar fazer login. Tente novamente.' });
+    console.error('Erro no login:', error);
+    return res.status(500).json({ error: 'Erro no login. Tente novamente mais tarde.' });
   }
 });
 
-// Inicializando o servidor
-app.listen(3001, () => {
-  console.log('Servidor rodando na porta 3001');
+// ------------------------
+// ROTA DE CADASTRO
+// ------------------------
+app.post('/register', async (req, res) => {
+  const { matricula, senha, nome, email, id_gerencia } = req.body;
+
+  if (!matricula || !senha || !nome || !email || !id_gerencia) {
+    return res.status(400).json({ error: 'Preencha todos os campos obrigatórios.' });
+  }
+
+  try {
+    const existingUser = await prisma.cadastro.findUnique({
+      where: { matricula: String(matricula) },
+    });
+
+    if (existingUser) {
+      return res.status(409).json({ error: 'Matrícula já cadastrada.' });
+    }
+
+    const hashedPassword = await bcrypt.hash(senha, 10);
+
+    const newUser = await prisma.cadastro.create({
+      data: {
+        matricula: String(matricula),
+        senha: hashedPassword,
+        nome,
+        email,
+        id_gerencia: Number(id_gerencia),
+        data_criacao: new Date(),
+      },
+    });
+
+    return res.status(201).json({
+      message: 'Cadastro realizado com sucesso.',
+      user: {
+        matricula: newUser.matricula,
+        nome: newUser.nome,
+      },
+    });
+
+  } catch (error) {
+    console.error('Erro no cadastro:', error);
+    return res.status(500).json({ error: 'Erro interno do servidor.' });
+  }
+});
+
+// ------------------------
+// INICIALIZAÇÃO DO SERVIDOR
+// ------------------------
+const PORT = 3001;
+app.listen(PORT, () => {
+  console.log(`✅ Servidor rodando na porta ${PORT}`);
 });

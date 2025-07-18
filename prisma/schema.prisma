@@ -1,28 +1,162 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  schemas  = ["sist_ferias"]
 }
 
 model cadastro {
-  matricula Int @unique @id
-  email     String @unique
-  nome      String
-  senha     String
+  matricula    String       @id(map: "CADASTRO_pkey") @map("MATRICULA") @db.VarChar(32)
+  senha        String       @map("SENHA") @db.VarChar(255)
+  nome         String       @map("NOME") @db.VarChar(255)
+  email        String       @map("EMAIL") @db.VarChar(255)
+  id_gerencia  Int          @map("ID_GERENCIA")
+  CPF          String?      @db.VarChar(255)
+  data_criacao DateTime?    @map("DATA_CRIACAO") @db.Timestamp(6)
+  ID_TIPO_USER Int?
+  tipo_user    tipo_user?   @relation(fields: [ID_TIPO_USER], references: [id_tipo_user], onDelete: NoAction, onUpdate: NoAction)
+  funcionarios funcionarios @relation(fields: [matricula], references: [MATRICULA_F], onDelete: NoAction, onUpdate: NoAction, map: "cadastro_matricula_fkey")
+
+  @@map("cadastro")
+  @@schema("sist_ferias")
 }
 
 model gerencia {
-  ID_GERENCIA        Int     @id @default(autoincrement())
-  GERENCIA      String
-  SIGLA_GERENCIA String
-  ID_TIPO_SEC Int
+  SIGLA_GERENCIA String         @id @db.VarChar(255)
+  GERENCIA       String?        @db.VarChar(255)
+  ID_GERENCIA    Int?           @default(autoincrement())
+  ID_TIPO_SEC    Int?
+  funcionarios   funcionarios[]
+
+  @@map("gerencia")
+  @@schema("sist_ferias")
+}
+
+model cargos_funcionarios {
+  MATRICULA     String @db.VarChar(32)
+  ID_TAB_CARGOS String @db.VarChar(255)
+  ID_SECRETARIA Int
+
+  @@id([MATRICULA, ID_TAB_CARGOS, ID_SECRETARIA])
+  @@schema("sist_ferias")
+}
+
+model coordenacao {
+  SIGLA_COORDENACAO String  @id @db.VarChar(255)
+  COORDENA__O       String? @map("COORDENAÇÃO") @db.VarChar(255)
+  ID_GERENCIA       Int?
+
+  @@schema("sist_ferias")
+}
+
+model ferias {
+  MATRICULA_SEM_PONTO          String              @db.VarChar(32)
+  PERIODO_AQUISITIVO_EM_ABERTO String              @db.VarChar(255)
+  TIPO                         Int?
+  SALDO_                       Int?                @map("SALDO ")
+  id                           Int                 @default(autoincrement())
+  funcionarios                 funcionarios        @relation(fields: [MATRICULA_SEM_PONTO], references: [MATRICULA_F], onDelete: NoAction, onUpdate: NoAction)
+  ferias_gozo                  ferias_gozo?
+  solicitacao_ferias           solicitacao_ferias?
+
+  @@id([MATRICULA_SEM_PONTO, PERIODO_AQUISITIVO_EM_ABERTO], map: "em_aberto_pkey")
+  @@schema("sist_ferias")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model funcionarios {
+  MATRICULA                    String    @db.VarChar(255)
+  MATRICULA_F                  String    @id(map: "funcionarios_copy1_pkey") @db.VarChar(32)
+  NOME                         String?   @db.VarChar(255)
+  DATA_ADMISSAO                DateTime? @db.Date
+  PERIODO_AQUISITIVO_EM_ABERTO String?   @db.VarChar(255)
+  TELEFONE                     String?   @db.VarChar(255)
+  EMAIL                        String?   @db.VarChar(255)
+  ENDERECO                     String?   @db.VarChar(255)
+  STATUS                       String?   @db.VarChar(255)
+  ID_SEC                       Int?
+  SIGLA_GERENCIA               String?   @db.VarChar(255)
+  cadastro                     cadastro?
+  ferias                       ferias[]
+  gerencia                     gerencia? @relation(fields: [SIGLA_GERENCIA], references: [SIGLA_GERENCIA], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("sist_ferias")
+}
+
+model secretaria {
+  ID_SECRETARIA   Int               @id
+  DESC_SECRETARIA String?           @db.VarChar(255)
+  tipo_secretaria tipo_secretaria[]
+
+  @@schema("sist_ferias")
+}
+
+model tab_cargos {
+  COD_CARGO  String  @db.VarChar(255)
+  DESC_CARGO String? @db.VarChar(255)
+  TIPO_CARGO String? @db.VarChar(255)
+  ID_SEC     Int
+
+  @@id([COD_CARGO, ID_SEC])
+  @@schema("sist_ferias")
+}
+
+model tipo_ferias {
+  ID_FERIAS   Int     @id
+  DESC_FERIAS String? @db.VarChar(255)
+
+  @@schema("sist_ferias")
+}
+
+model tipo_secretaria {
+  SIGLA_SECRETARIA_EXECUTIVA String?     @db.VarChar(255)
+  COD_SECRETARIA_EXECUTIVA   String?     @db.VarChar(255)
+  SECRETARIA_EXECUTIVA       String?     @db.VarChar(255)
+  SIGLA_SECRETARIA_MUNICIPAL String?     @db.VarChar(255)
+  TIPO_SECRETARIA            String?     @db.VarChar
+  ID_TIPO_SEC                Int         @id @default(autoincrement())
+  ID_SECRETARIA              Int?
+  secretaria                 secretaria? @relation(fields: [ID_SECRETARIA], references: [ID_SECRETARIA], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("sist_ferias")
+}
+
+model tipo_user {
+  tipo_user    String?    @db.VarChar(255)
+  id_tipo_user Int        @id
+  cadastro     cadastro[]
+
+  @@schema("sist_ferias")
+}
+
+model solicitacao_ferias {
+  MATRICULA          String  @db.VarChar(32)
+  TIPO               String? @db.VarChar(255)
+  MES                String  @db.VarChar(255)
+  PERIODO_AQUISITIVO String  @db.VarChar(255)
+  SALDO_DIAS         Int?    @map("SALDO DIAS")
+  ANO                String  @db.VarChar(255)
+  STATUS             String? @db.VarChar(255)
+  ferias             ferias  @relation(fields: [MATRICULA, PERIODO_AQUISITIVO], references: [MATRICULA_SEM_PONTO, PERIODO_AQUISITIVO_EM_ABERTO], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([MATRICULA, PERIODO_AQUISITIVO], map: "GOZO_pkey")
+  @@schema("sist_ferias")
+}
+
+model ferias_gozo {
+  MATRICULA_F        String  @db.VarChar(255)
+  PERIODO_AQUISITIVO String  @db.VarChar(255)
+  MES                String  @db.VarChar(255)
+  SALDO              String? @db.VarChar(255)
+  TIPO               String? @db.VarChar(255)
+  PERCEPCAO          String  @db.VarChar(255)
+  ANO                String  @db.VarChar(255)
+  ferias             ferias  @relation(fields: [MATRICULA_F, PERIODO_AQUISITIVO], references: [MATRICULA_SEM_PONTO, PERIODO_AQUISITIVO_EM_ABERTO], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([MATRICULA_F, PERIODO_AQUISITIVO])
+  @@schema("sist_ferias")
 }
