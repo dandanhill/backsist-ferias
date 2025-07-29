@@ -41,6 +41,20 @@ export const criarSolicitacaoFerias = async (req, res) => {
   }
 
   try {
+    // Verifica se o período existe na tabela ferias
+    const feriasExistente = await prisma.ferias.findUnique({
+      where: {
+        MATRICULA_SEM_PONTO_PERIODO_AQUISITIVO_EM_ABERTO: {
+          MATRICULA_SEM_PONTO: matricula,
+          PERIODO_AQUISITIVO_EM_ABERTO: periodo_aquisitivo
+        }
+      }
+    });
+
+    if (!feriasExistente) {
+      return res.status(404).json({ error: 'Período aquisitivo não encontrado para essa matrícula' });
+    }
+
     const novaSolicitacao = await prisma.solicitacao_ferias.create({
       data: {
         MATRICULA: matricula,
@@ -48,7 +62,7 @@ export const criarSolicitacaoFerias = async (req, res) => {
         TIPO: tipo,
         MES: mes,
         ANO: ano,
-        SALDO: saldo
+        SALDO_DIAS: saldo
       }
     });
 

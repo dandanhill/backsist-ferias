@@ -55,29 +55,34 @@ export const getFuncionariosComFerias = async (req, res) => {
 
   try {
     const funcionarios = await prisma.funcionarios.findMany({
-  include: {
-    ferias: {
-      select: {
-        PERIODO_AQUISITIVO_EM_ABERTO: true,
+      where: {
+        gerencia: {
+          SIGLA_GERENCIA: siglaGerencia,
+        },
+      },
+      include: {
+        ferias: {
+          select: {
+            PERIODO_AQUISITIVO_EM_ABERTO: true,
+          }
+        },
+        gerencia: {
+          select: {
+            GERENCIA: true,
+            SIGLA_GERENCIA: true,
+          }
+        }
       }
-    },
-    gerencia: {
-  select: {
-    GERENCIA: true,
-    SIGLA_GERENCIA: true,
-  }
-    }
-  }
-});
+    });
 
     return res.json(
       funcionarios.map((f) => {
-        const ultimaFerias = f.ferias[0]; // <- Ponto chave!
+        const ultimaFerias = f.ferias[0];
         return {
           MATRICULA_F: f.MATRICULA_F,
           NOME: f.NOME,
           GERENCIA: f.gerencia?.GERENCIA || '---',
-          SIGLA_GERENCIA: f.SIGLA_GERENCIA,
+          SIGLA_GERENCIA: f.gerencia?.SIGLA_GERENCIA || '---',
           PERIODO_AQUISITIVO_EM_ABERTO: ultimaFerias?.PERIODO_AQUISITIVO_EM_ABERTO || '---',
         };
       })
@@ -87,6 +92,7 @@ export const getFuncionariosComFerias = async (req, res) => {
     return res.status(500).json({ error: 'Erro ao buscar funcionários' });
   }
 };
+
 // controllers/gerenciaController.js
 export const getFuncionariosEmFerias = async (req, res) => {
   const currentYear = new Date().getFullYear().toString(); // ex.: "2025"
@@ -100,6 +106,8 @@ export const getFuncionariosEmFerias = async (req, res) => {
         ANO: true,
         TIPO: true,
         PERIODO_AQUISITIVO: true, // <- ESSENCIAL
+        SALDO: true, // <- Incluindo o saldo
+
       },
       orderBy: {
         MES: 'asc',
@@ -116,6 +124,8 @@ export const getFuncionariosEmFerias = async (req, res) => {
           ANO: true,
           TIPO: true,
           PERIODO_AQUISITIVO: true, // <- também aqui!
+          SALDO: true, // <- Incluindo o saldo
+
         },
         orderBy: {
           MES: 'asc',

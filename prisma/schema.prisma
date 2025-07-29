@@ -140,7 +140,8 @@ model solicitacao_ferias {
   PERIODO_AQUISITIVO String  @db.VarChar(255)
   SALDO_DIAS         Int?    @map("SALDO DIAS")
   ANO                String  @db.VarChar(255)
-  STATUS             String? @db.VarChar(255)
+  STATUS             String  @db.VarChar(255)
+  DIAS_SOL           Int
   ferias             ferias  @relation(fields: [MATRICULA, PERIODO_AQUISITIVO], references: [MATRICULA_SEM_PONTO, PERIODO_AQUISITIVO_EM_ABERTO], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([MATRICULA, PERIODO_AQUISITIVO], map: "GOZO_pkey")
@@ -158,5 +159,12 @@ model ferias_gozo {
   ferias             ferias  @relation(fields: [MATRICULA_F, PERIODO_AQUISITIVO], references: [MATRICULA_SEM_PONTO, PERIODO_AQUISITIVO_EM_ABERTO], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([MATRICULA_F, PERIODO_AQUISITIVO])
+  @@schema("sist_ferias")
+}
+
+model status {
+  STATUS    String? @db.VarChar(255)
+  ID_STATUS Int     @id
+
   @@schema("sist_ferias")
 }
