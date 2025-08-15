@@ -77,6 +77,7 @@ export const getFuncionariosComFerias = async (req, res) => {
         NOME: f.NOME,
         SIGLA_GERENCIA: f.SIGLA_GERENCIA,
         PERIODO_AQUISITIVO_EM_ABERTO: f.periodos?.[0]?.PERIODO_AQUISITIVO_EM_ABERTO || null,
+        ID_PERIODO: ferias?.ID || null,
         MES: ferias?.MES
           ? format(new Date(ferias.MES), "MMMM", { locale: ptBR }).toLowerCase()
           : null,
