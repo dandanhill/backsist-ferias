@@ -6,6 +6,7 @@ import { getGerencias, getTodosFuncionarios } from './src/controllers/gerenciaCo
 import feriasRoutes from './src/routes/feriasRoutes.js';
 import dashboardRoutes from './src/routes/dashboardRoutes.js';
 import gerenciaRoutes from './src/routes/gerenciaRoutes.js';
+import authRoutes from './src/routes/authRoutes.js';
 
 const prisma = new PrismaClient();
 const app = express();
@@ -28,6 +29,7 @@ app.use((req, res, next) => {
 app.use('/solicitar-ferias', feriasRoutes);
 app.use('/tela', dashboardRoutes);
 app.use('/gerencias', gerenciaRoutes);
+app.use('/', authRoutes); // garante que /nova-senha existe
 
 // ------------------------
 // ROTA DE LOGIN
@@ -41,14 +43,14 @@ app.post('/login', async (req, res) => {
 
   try {
     const user = await prisma.cadastro.findUnique({
-      where: { matricula: String(matricula) },
+      where: { MATRICULA: String(matricula) },
     });
 
-    if (!user || !user.senha) {
+    if (!user || !user.SENHA) {
       return res.status(401).json({ error: 'Usuário ou senha inválidos.' });
     }
 
-    const senhaCorreta = await bcrypt.compare(senha, user.senha);
+    const senhaCorreta = await bcrypt.compare(senha, user.SENHA);
 
     if (!senhaCorreta) {
       return res.status(401).json({ error: 'Senha incorreta.' });
@@ -83,7 +85,7 @@ app.post('/register', async (req, res) => {
 
   try {
     const existingUser = await prisma.cadastro.findUnique({
-      where: { matricula: String(matricula) },
+      where: { MATRICULA: String(matricula) },
     });
 
     if (existingUser) {
@@ -94,20 +96,20 @@ app.post('/register', async (req, res) => {
 
     const newUser = await prisma.cadastro.create({
       data: {
-        matricula: String(matricula),
-        senha: hashedPassword,
-        nome,
-        email,
-        id_gerencia: Number(id_gerencia),
-        data_criacao: new Date(),
+        MATRICULA: String(matricula),
+        SENHA: hashedPassword,
+        NOME: String(nome),
+        EMAIL: String(email),
+        ID_GERENCIA: Number(id_gerencia),
+        DATA_CRIACAO: new Date(),
       },
     });
 
     return res.status(201).json({
       message: 'Cadastro realizado com sucesso.',
       user: {
-        matricula: newUser.matricula,
-        nome: newUser.nome,
+        MATRICULA: newUser.MATRICULA,
+        NOME: newUser.NOME,
       },
     });
 

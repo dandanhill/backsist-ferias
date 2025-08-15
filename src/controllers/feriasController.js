@@ -5,7 +5,7 @@ export const getPeriodosValidos = async (req, res) => {
   const { matricula } = req.params;
 
   try {
-    const periodos = await prisma.ferias.findMany({
+    const periodos = await prisma.periodos.findMany({
     where: {
      MATRICULA_SEM_PONTO: matricula,
   },
@@ -42,13 +42,11 @@ export const criarSolicitacaoFerias = async (req, res) => {
 
   try {
     // Verifica se o período existe na tabela ferias
-    const feriasExistente = await prisma.ferias.findUnique({
+    const feriasExistente = await prisma.periodos.findUnique({
       where: {
-        MATRICULA_SEM_PONTO_PERIODO_AQUISITIVO_EM_ABERTO: {
           MATRICULA_SEM_PONTO: matricula,
           PERIODO_AQUISITIVO_EM_ABERTO: periodo_aquisitivo
         }
-      }
     });
 
     if (!feriasExistente) {

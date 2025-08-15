@@ -10,16 +10,17 @@ datasource db {
 }
 
 model cadastro {
-  matricula    String       @id(map: "CADASTRO_pkey") @map("MATRICULA") @db.VarChar(32)
-  senha        String       @map("SENHA") @db.VarChar(255)
-  nome         String       @map("NOME") @db.VarChar(255)
-  email        String       @map("EMAIL") @db.VarChar(255)
-  id_gerencia  Int          @map("ID_GERENCIA")
-  CPF          String?      @db.VarChar(255)
-  data_criacao DateTime?    @map("DATA_CRIACAO") @db.Timestamp(6)
-  ID_TIPO_USER Int?
-  tipo_user    tipo_user?   @relation(fields: [ID_TIPO_USER], references: [id_tipo_user], onDelete: NoAction, onUpdate: NoAction)
-  funcionarios funcionarios @relation(fields: [matricula], references: [MATRICULA_F], onDelete: NoAction, onUpdate: NoAction, map: "cadastro_matricula_fkey")
+  MATRICULA       String       @id @db.VarChar(32)
+  SENHA           String       @db.VarChar(255)
+  NOME            String       @db.VarChar(255)
+  EMAIL           String       @db.VarChar(255)
+  ID_GERENCIA     Int
+  CPF             String?      @db.VarChar(255)
+  DATA_CRIACAO    DateTime?    @db.Timestamp(6)
+  ID_TIPO_USER    Int?
+  primeiro_acesso Boolean?     @default(true)
+  tipo_user       tipo_user?   @relation(fields: [ID_TIPO_USER], references: [ID_TIPO_USER], onDelete: NoAction, onUpdate: NoAction, map: "cadastro_fk_tipo_user")
+  funcionarios    funcionarios @relation(fields: [MATRICULA], references: [MATRICULA_F], onDelete: NoAction, onUpdate: NoAction, map: "cadastro_matricula_fkey")
 
   @@map("cadastro")
   @@schema("sist_ferias")
@@ -37,9 +38,10 @@ model gerencia {
 }
 
 model cargos_funcionarios {
-  MATRICULA     String @db.VarChar(32)
-  ID_TAB_CARGOS String @db.VarChar(255)
+  MATRICULA     String     @db.VarChar(32)
+  ID_TAB_CARGOS String     @db.VarChar(255)
   ID_SECRETARIA Int
+  tab_cargos    tab_cargos @relation(fields: [ID_TAB_CARGOS, ID_SECRETARIA], references: [COD_CARGO, ID_SEC], onDelete: NoAction, onUpdate: NoAction, map: "cargos_funcionarios_id_tab_cargos_id_secretaria_fkey")
 
   @@id([MATRICULA, ID_TAB_CARGOS, ID_SECRETARIA])
   @@schema("sist_ferias")
@@ -47,43 +49,30 @@ model cargos_funcionarios {
 
 model coordenacao {
   SIGLA_COORDENACAO String  @id @db.VarChar(255)
-  COORDENA__O       String? @map("COORDENAÇÃO") @db.VarChar(255)
+  COORDENAÇÃO     String? @map("COORDENAÇÃO") @db.VarChar(255)
   ID_GERENCIA       Int?
 
   @@schema("sist_ferias")
 }
 
-model ferias {
-  MATRICULA_SEM_PONTO          String              @db.VarChar(32)
-  PERIODO_AQUISITIVO_EM_ABERTO String              @db.VarChar(255)
-  TIPO                         Int?
-  SALDO_                       Int?                @map("SALDO ")
-  id                           Int                 @default(autoincrement())
-  funcionarios                 funcionarios        @relation(fields: [MATRICULA_SEM_PONTO], references: [MATRICULA_F], onDelete: NoAction, onUpdate: NoAction)
-  ferias_gozo                  ferias_gozo?
-  solicitacao_ferias           solicitacao_ferias?
-
-  @@id([MATRICULA_SEM_PONTO, PERIODO_AQUISITIVO_EM_ABERTO], map: "em_aberto_pkey")
-  @@schema("sist_ferias")
-}
-
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model funcionarios {
-  MATRICULA                    String    @db.VarChar(255)
-  MATRICULA_F                  String    @id(map: "funcionarios_copy1_pkey") @db.VarChar(32)
-  NOME                         String?   @db.VarChar(255)
-  DATA_ADMISSAO                DateTime? @db.Date
-  PERIODO_AQUISITIVO_EM_ABERTO String?   @db.VarChar(255)
-  TELEFONE                     String?   @db.VarChar(255)
-  EMAIL                        String?   @db.VarChar(255)
-  ENDERECO                     String?   @db.VarChar(255)
-  STATUS                       String?   @db.VarChar(255)
-  ID_SEC                       Int?
-  SIGLA_GERENCIA               String?   @db.VarChar(255)
-  cadastro                     cadastro?
-  ferias                       ferias[]
-  gerencia                     gerencia? @relation(fields: [SIGLA_GERENCIA], references: [SIGLA_GERENCIA], onDelete: NoAction, onUpdate: NoAction)
+  MATRICULA      String?    @db.VarChar(255)
+  MATRICULA_F    String     @id @db.VarChar(32)
+  NOME           String?    @db.VarChar(255)
+  DATA_ADMISSAO  DateTime?  @db.Date
+  TELEFONE       String?    @db.VarChar(255)
+  EMAIL          String?    @db.VarChar(255)
+  ENDERECO       String?    @db.VarChar(255)
+  STATUS         String?    @db.VarChar(255)
+  ID_SEC         Int?
+  SIGLA_GERENCIA String?    @db.VarChar(255)
+  TIPO_CARGO     String?    @db.VarChar(255)
+  cadastro       cadastro?
+  gerencia       gerencia?  @relation(fields: [SIGLA_GERENCIA], references: [SIGLA_GERENCIA], onDelete: NoAction, onUpdate: NoAction)
+  periodos       periodos[]
 
+  @@map("funcionarios")
   @@schema("sist_ferias")
 }
 
@@ -96,12 +85,14 @@ model secretaria {
 }
 
 model tab_cargos {
-  COD_CARGO  String  @db.VarChar(255)
-  DESC_CARGO String? @db.VarChar(255)
-  TIPO_CARGO String? @db.VarChar(255)
-  ID_SEC     Int
+  COD_CARGO           String                @db.VarChar(255)
+  DESC_CARGO          String?               @db.VarChar(255)
+  TIPO_CARGO          String?               @db.VarChar(255)
+  ID_SEC              Int
+  cargos_funcionarios cargos_funcionarios[]
 
   @@id([COD_CARGO, ID_SEC])
+  @@map("tab_cargos")
   @@schema("sist_ferias")
 }
 
@@ -113,58 +104,73 @@ model tipo_ferias {
 }
 
 model tipo_secretaria {
+  ID_TIPO_SEC                Int         @id @default(autoincrement())
   SIGLA_SECRETARIA_EXECUTIVA String?     @db.VarChar(255)
   COD_SECRETARIA_EXECUTIVA   String?     @db.VarChar(255)
   SECRETARIA_EXECUTIVA       String?     @db.VarChar(255)
   SIGLA_SECRETARIA_MUNICIPAL String?     @db.VarChar(255)
   TIPO_SECRETARIA            String?     @db.VarChar
-  ID_TIPO_SEC                Int         @id @default(autoincrement())
   ID_SECRETARIA              Int?
-  secretaria                 secretaria? @relation(fields: [ID_SECRETARIA], references: [ID_SECRETARIA], onDelete: NoAction, onUpdate: NoAction)
+  secretaria                 secretaria? @relation(fields: [ID_SECRETARIA], references: [ID_SECRETARIA], onDelete: NoAction, onUpdate: NoAction, map: "tipo_secretaria_fk_secretaria")
 
   @@schema("sist_ferias")
 }
 
 model tipo_user {
-  tipo_user    String?    @db.VarChar(255)
-  id_tipo_user Int        @id
+  ID_TIPO_USER Int        @id
+  TIPO_USER    String?    @db.VarChar(255)
   cadastro     cadastro[]
 
   @@schema("sist_ferias")
 }
 
 model solicitacao_ferias {
-  MATRICULA          String  @db.VarChar(32)
-  TIPO               String? @db.VarChar(255)
-  MES                String  @db.VarChar(255)
-  PERIODO_AQUISITIVO String  @db.VarChar(255)
-  SALDO_DIAS         Int?    @map("SALDO DIAS")
-  ANO                String  @db.VarChar(255)
-  STATUS             String  @db.VarChar(255)
+  MATRICULA          String   @db.VarChar(32)
+  TIPO               String?  @db.VarChar(255)
+  MES                String?  @db.VarChar(255)
+  PERIODO_AQUISITIVO String   @db.VarChar(255)
+  SALDO_DIAS         Int?
+  ANO                String?  @db.VarChar(255)
+  STATUS             String?  @db.VarChar(255)
   DIAS_SOL           Int
-  ferias             ferias  @relation(fields: [MATRICULA, PERIODO_AQUISITIVO], references: [MATRICULA_SEM_PONTO, PERIODO_AQUISITIVO_EM_ABERTO], onDelete: NoAction, onUpdate: NoAction)
+  periodos           periodos @relation(fields: [MATRICULA, PERIODO_AQUISITIVO], references: [MATRICULA_SEM_PONTO, PERIODO_AQUISITIVO_EM_ABERTO], onDelete: NoAction, onUpdate: NoAction, map: "solicitacao_fk_ferias")
 
-  @@id([MATRICULA, PERIODO_AQUISITIVO], map: "GOZO_pkey")
+  @@id([MATRICULA, PERIODO_AQUISITIVO])
   @@schema("sist_ferias")
 }
 
 model ferias_gozo {
-  MATRICULA_F        String  @db.VarChar(255)
-  PERIODO_AQUISITIVO String  @db.VarChar(255)
-  MES                String  @db.VarChar(255)
-  SALDO              String? @db.VarChar(255)
-  TIPO               String? @db.VarChar(255)
-  PERCEPCAO          String  @db.VarChar(255)
-  ANO                String  @db.VarChar(255)
-  ferias             ferias  @relation(fields: [MATRICULA_F, PERIODO_AQUISITIVO], references: [MATRICULA_SEM_PONTO, PERIODO_AQUISITIVO_EM_ABERTO], onDelete: NoAction, onUpdate: NoAction)
+  MES       DateTime? @db.Date
+  SALDO     String?   @db.VarChar(255)
+  TIPO      String?   @db.VarChar(255)
+  PERCEPCAO String?   @db.VarChar(255)
+  ANO       String?   @db.VarChar(255)
+  ID        String    @id @db.VarChar(32)
+  periodos  periodos  @relation(fields: [ID], references: [ID], onDelete: NoAction, onUpdate: NoAction)
 
-  @@id([MATRICULA_F, PERIODO_AQUISITIVO])
+  @@map("ferias_gozo")
   @@schema("sist_ferias")
 }
 
 model status {
-  STATUS    String? @db.VarChar(255)
   ID_STATUS Int     @id
+  STATUS    String? @db.VarChar(255)
 
+  @@schema("sist_ferias")
+}
+
+model periodos {
+  MATRICULA_SEM_PONTO          String              @db.VarChar(32)
+  PERIODO_AQUISITIVO_EM_ABERTO String              @db.VarChar(255)
+  TIPO                         Int?
+  SALDO                        Int?                @map("SALDO ")
+  PERCEPCAO                    String?             @db.VarChar(255)
+  ID                           String              @id @default(dbgenerated("nextval('sist_ferias.periodos_id_seq'::regclass)")) @db.VarChar(32)
+  ferias_gozo                  ferias_gozo?
+  funcionarios                 funcionarios        @relation(fields: [MATRICULA_SEM_PONTO], references: [MATRICULA_F], onDelete: NoAction, onUpdate: NoAction, map: "periodos_matricula_sem_ponto_fkey")
+  solicitacao_ferias           solicitacao_ferias?
+
+  @@unique([MATRICULA_SEM_PONTO, PERIODO_AQUISITIVO_EM_ABERTO], map: "ferias_matricula_sem_ponto_periodo_aquisitivo_em_aberto_key")
+  @@map("periodos")
   @@schema("sist_ferias")
 }
