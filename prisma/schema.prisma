@@ -57,19 +57,20 @@ model coordenacao {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model funcionarios {
-  MATRICULA      String?    @db.VarChar(255)
-  MATRICULA_F    String     @id @db.VarChar(32)
-  NOME           String?    @db.VarChar(255)
-  DATA_ADMISSAO  DateTime?  @db.Date
-  TELEFONE       String?    @db.VarChar(255)
-  EMAIL          String?    @db.VarChar(255)
-  ENDERECO       String?    @db.VarChar(255)
-  STATUS         String?    @db.VarChar(255)
+  MATRICULA      String?         @db.VarChar(255)
+  MATRICULA_F    String          @id @db.VarChar(32)
+  NOME           String?         @db.VarChar(255)
+  DATA_ADMISSAO  DateTime?       @db.Date
+  TELEFONE       String?         @db.VarChar(255)
+  EMAIL          String?         @db.VarChar(255)
+  ENDERECO       String?         @db.VarChar(255)
+  STATUS         String?         @db.VarChar(255)
   ID_SEC         Int?
-  SIGLA_GERENCIA String?    @db.VarChar(255)
-  TIPO_CARGO     String?    @db.VarChar(255)
+  SIGLA_GERENCIA String?         @db.VarChar(255)
+  TIPO_CARGO     String?         @db.VarChar(255)
   cadastro       cadastro?
-  gerencia       gerencia?  @relation(fields: [SIGLA_GERENCIA], references: [SIGLA_GERENCIA], onDelete: NoAction, onUpdate: NoAction)
+  gerencia       gerencia?       @relation(fields: [SIGLA_GERENCIA], references: [SIGLA_GERENCIA], onDelete: NoAction, onUpdate: NoAction)
+  status_usuario status_usuario? @relation(fields: [STATUS], references: [DESC_STATUS], onDelete: NoAction, onUpdate: NoAction)
   periodos       periodos[]
 
   @@map("funcionarios")
@@ -125,52 +126,64 @@ model tipo_user {
 }
 
 model solicitacao_ferias {
-  MATRICULA          String   @db.VarChar(32)
-  TIPO               String?  @db.VarChar(255)
-  MES                String?  @db.VarChar(255)
-  PERIODO_AQUISITIVO String   @db.VarChar(255)
+  MATRICULA          String  @db.VarChar(32)
+  TIPO               String? @db.VarChar(255)
+  MES                String? @db.VarChar(255)
+  PERIODO_AQUISITIVO String  @db.VarChar(255)
   SALDO_DIAS         Int?
-  ANO                String?  @db.VarChar(255)
-  STATUS             String?  @db.VarChar(255)
+  ANO                String? @db.VarChar(255)
+  STATUS             String? @db.VarChar(255)
   DIAS_SOL           Int
-  periodos           periodos @relation(fields: [MATRICULA, PERIODO_AQUISITIVO], references: [MATRICULA_SEM_PONTO, PERIODO_AQUISITIVO_EM_ABERTO], onDelete: NoAction, onUpdate: NoAction, map: "solicitacao_fk_ferias")
 
   @@id([MATRICULA, PERIODO_AQUISITIVO])
   @@schema("sist_ferias")
 }
 
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model ferias_gozo {
-  MES       DateTime? @db.Date
-  SALDO     String?   @db.VarChar(255)
-  TIPO      String?   @db.VarChar(255)
-  PERCEPCAO String?   @db.VarChar(255)
-  ANO       String?   @db.VarChar(255)
-  ID        String    @id @db.VarChar(32)
-  periodos  periodos  @relation(fields: [ID], references: [ID], onDelete: NoAction, onUpdate: NoAction)
+  MES_INICIO DateTime @db.Date
+  SALDO      String?  @db.VarChar(255)
+  TIPO       String?  @db.VarChar(255)
+  PERCEPCAO  String?  @db.VarChar(255)
+  ANO        String   @db.VarChar(255)
+  ID         String   @db.VarChar(32)
+  MES_FIM    DateTime @db.Date
+  periodos   periodos @relation(fields: [ID], references: [ID], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("ferias_gozo")
-  @@schema("sist_ferias")
-}
-
-model status {
-  ID_STATUS Int     @id
-  STATUS    String? @db.VarChar(255)
-
+  @@ignore
   @@schema("sist_ferias")
 }
 
 model periodos {
-  MATRICULA_SEM_PONTO          String              @db.VarChar(32)
-  PERIODO_AQUISITIVO_EM_ABERTO String              @db.VarChar(255)
+  MATRICULA_SEM_PONTO          String         @db.VarChar(32)
+  PERIODO_AQUISITIVO_EM_ABERTO String         @db.VarChar(255)
   TIPO                         Int?
-  SALDO                        Int?                @map("SALDO ")
-  PERCEPCAO                    String?             @db.VarChar(255)
-  ID                           String              @id @default(dbgenerated("nextval('sist_ferias.periodos_id_seq'::regclass)")) @db.VarChar(32)
-  ferias_gozo                  ferias_gozo?
-  funcionarios                 funcionarios        @relation(fields: [MATRICULA_SEM_PONTO], references: [MATRICULA_F], onDelete: NoAction, onUpdate: NoAction, map: "periodos_matricula_sem_ponto_fkey")
-  solicitacao_ferias           solicitacao_ferias?
+  SALDO                        Int?           @map("SALDO ")
+  PERCEPCAO                    String?        @db.VarChar(255)
+  ID                           String         @id @default(dbgenerated("nextval('sist_ferias.periodos_id_seq'::regclass)")) @db.VarChar(32)
+  STATUS                       Int?           @db.SmallInt
+  ferias_gozo                  ferias_gozo[]  @ignore
+  status_ferias                status_ferias? @relation(fields: [STATUS], references: [ID_STATUS], onDelete: NoAction, onUpdate: NoAction)
+  funcionarios                 funcionarios   @relation(fields: [MATRICULA_SEM_PONTO], references: [MATRICULA_F], onDelete: NoAction, onUpdate: NoAction, map: "periodos_matricula_sem_ponto_fkey")
 
   @@unique([MATRICULA_SEM_PONTO, PERIODO_AQUISITIVO_EM_ABERTO], map: "ferias_matricula_sem_ponto_periodo_aquisitivo_em_aberto_key")
   @@map("periodos")
+  @@schema("sist_ferias")
+}
+
+model status_ferias {
+  ID_STATUS Int        @id(map: "status_pkey")
+  STATUS    String?    @db.VarChar(255)
+  periodos  periodos[]
+
+  @@schema("sist_ferias")
+}
+
+model status_usuario {
+  DESC_STATUS  String         @id(map: "STATUS USUARIO_pkey") @db.VarChar(255)
+  ID_STATUS    Int
+  funcionarios funcionarios[]
+
   @@schema("sist_ferias")
 }

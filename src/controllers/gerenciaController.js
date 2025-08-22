@@ -53,12 +53,23 @@ export const getTodosFuncionarios = async (req, res) => {
 // GET /gerencias/:sigla/funcionarios
 export const getFuncionariosComFerias = async (req, res) => {
   const { sigla } = req.params;
+  const { nome } = req.query; // <-- pegando nome da query
 
   try {
     const funcionarios = await prisma.funcionarios.findMany({
-      where: {
+      where: nome ? {
         SIGLA_GERENCIA: sigla,
-      },
+        NOME: {
+          contains: nome,
+          mode: 'insensitive'
+        },
+      }
+        :
+        {
+
+          SIGLA_GERENCIA: sigla,
+
+        },
       include: {
         periodos: {
           include: {
@@ -76,9 +87,11 @@ export const getFuncionariosComFerias = async (req, res) => {
         MATRICULA_F: f.MATRICULA_F,
         NOME: f.NOME,
         SIGLA_GERENCIA: f.SIGLA_GERENCIA,
-        PERIODO_AQUISITIVO_EM_ABERTO: f.periodos?.[0]?.PERIODO_AQUISITIVO_EM_ABERTO || null,
+        PERIODO_AQUISITIVO_EM_ABERTO:
+          f.periodos?.[0]?.PERIODO_AQUISITIVO_EM_ABERTO || null,
         ID_PERIODO: ferias?.ID || null,
-        MES: ferias?.MES
+        MES_INICIO: ferias?.MES_INICIO,
+        MES_FIM: ferias?.MES_FIM
           ? format(new Date(ferias.MES), "MMMM", { locale: ptBR }).toLowerCase()
           : null,
 
@@ -100,10 +113,11 @@ export const getFuncionariosEmFerias = async (req, res) => {
   try {
     let gozoFerias = await prisma.ferias_gozo.findMany({
       where: { ANO: currentYear },
-      orderBy: { MES: 'asc' },
+      orderBy: { MES_INICIO: 'asc' }, // <--- CORRIGIDO: Usa MES_INICIO para ordenação
       select: {
         ID: true,
-        MES: true,
+        MES_INICIO: true, // <--- CORRIGIDO: Seleciona MES_INICIO
+        MES_FIM: true,    // <--- ADICIONADO: Seleciona MES_FIM (se relevante para o retorno)
         ANO: true,
         TIPO: true,
         SALDO: true,
@@ -126,12 +140,15 @@ export const getFuncionariosEmFerias = async (req, res) => {
     if (gozoFerias.length === 0) {
       gozoFerias = await prisma.ferias_gozo.findMany({
         where: { ANO: (parseInt(currentYear) + 1).toString() },
-        orderBy: { MES: 'asc' },
+        orderBy: { MES_INICIO: 'asc' }, // <--- CORRIGIDO: Usa MES_INICIO para ordenação
         select: {
-          MES: true,
+          ID: true, // Certifique-se de que o ID está sendo selecionado aqui também
+          MES_INICIO: true, // <--- CORRIGIDO: Seleciona MES_INICIO
+          MES_FIM: true,    // <--- ADICIONADO: Seleciona MES_FIM (se relevante para o retorno)
           ANO: true,
           TIPO: true,
           SALDO: true,
+          PERCEPCAO: true, // Certifique-se de que PERCEPCAO está sendo selecionada aqui também
           periodos: {
             select: {
               PERIODO_AQUISITIVO_EM_ABERTO: true,
@@ -148,13 +165,15 @@ export const getFuncionariosEmFerias = async (req, res) => {
       });
     }
 
+    // Ajusta o retorno para o frontend ficar mais simples
     const formatted = gozoFerias.map(feria => {
-      const periodo = feria.periodos?.[0];
+      const periodo = feria.periodos[0];
       const funcionario = periodo?.funcionarios;
 
       return {
         ID: feria.ID,
-        MES: feria.MES,
+        MES_INICIO: feria.MES_INICIO, // <--- CORRIGIDO: Usa MES_INICIO no retorno
+        MES_FIM: feria.MES_FIM,      // <--- ADICIONADO: Usa MES_FIM no retorno
         TIPO: feria.TIPO,
         PERCEPCAO: feria.PERCEPCAO,
         ANO: feria.ANO,

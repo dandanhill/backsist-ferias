@@ -1,23 +1,7 @@
-import { makeTypedQueryFactory } from '@prisma/client/runtime/library';
-import prisma from '../prismaClient.js'; // lembre-se do `.js` se estiver usando ESModules
+import prisma from '../prismaClient.js'; // ESModules
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-
-
-const dataAtual = new Date();
-const inicioMes = startOfMonth(dataAtual);
-const fimMes = endOfMonth(dataAtual);
-
-
-const total = await prisma.ferias_gozo.count({
-  where: {
-    MES: {
-      gte: inicioMes,
-      lte: fimMes
-    }
-  }
-});
 // Total de funcionários
 export const getTotalFuncionarios = async (req, res) => {
   try {
@@ -28,31 +12,16 @@ export const getTotalFuncionarios = async (req, res) => {
     res.status(500).json({ error: 'Erro ao buscar total de funcionários' });
   }
 };
-const ferias = await prisma.ferias_gozo.findMany({
-  select: {
-    MES: true,
-    SALDO: true,
-    periodos: {
-      select: {
-        funcionarios: { select: { NOME: true } }
-      }
-    }
-  }
-});
-const resposta = ferias.map(f => ({
-  ...f,
-  MES_FORMATADO: format(new Date(f.MES), "MMMM", { locale: ptBR }) // Ex.: "agosto"
-}));
+
 // Férias no mês atual
 export const getFeriasMesAtual = async (req, res) => {
   try {
-    const dataAtual = new Date();
-    const inicioMes = startOfMonth(dataAtual);
-    const fimMes = endOfMonth(dataAtual);
+    const inicioMes = startOfMonth(new Date());
+    const fimMes = endOfMonth(new Date());
 
     const total = await prisma.ferias_gozo.count({
       where: {
-        MES: {
+        MES_INICIO: {
           gte: inicioMes,
           lte: fimMes
         }
@@ -65,6 +34,8 @@ export const getFeriasMesAtual = async (req, res) => {
     res.status(500).json({ error: 'Erro ao buscar férias do mês atual' });
   }
 };
+
+// Funcionários com férias
 export const getFuncionariosComFerias = async (req, res) => {
   try {
     const funcionarios = await prisma.funcionarios.findMany({
@@ -85,8 +56,8 @@ export const getFuncionariosComFerias = async (req, res) => {
         GERENCIA: f.GERENCIA,
         SIGLA_GERENCIA: f.SIGLA_GERENCIA,
         PERIODO_AQUISITIVO_EM_ABERTO: f.periodos?.[0]?.PERIODO_AQUISITIVO_EM_ABERTO || null,
-        MES_FORMATADO: ferias?.MES
-          ? format(new Date(ferias.MES), "MMMM", { locale: ptBR }).toLowerCase()
+        MES_FORMATADO: ferias?.MES_INICIO
+          ? format(new Date(ferias.MES_INICIO), "MMMM", { locale: ptBR }).toLowerCase()
           : null,
         SALDO: ferias?.SALDO || null
       };
@@ -98,6 +69,7 @@ export const getFuncionariosComFerias = async (req, res) => {
     res.status(500).json({ error: "Erro ao buscar funcionários" });
   }
 };
+
 // Férias agendadas
 export const getFeriasAgendadas = async (req, res) => {
   try {
@@ -113,12 +85,14 @@ export const getFeriasAgendadas = async (req, res) => {
     res.status(500).json({ error: 'Erro ao buscar férias agendadas' });
   }
 };
+
 // Solicitações de férias em aberto
 export const getFeriasSolicitadas = async (req, res) => {
   const meses = [
     'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO',
     'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
   ];
+
   try {
     const total = await prisma.solicitacao_ferias.count({
       where: {
