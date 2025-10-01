@@ -45,13 +45,13 @@ export const criarSolicitacaoFerias = async (req, res) => {
     // Cria solicitação de férias
     const dias = Math.ceil((new Date(dataFim).getTime() - new Date(dataInicio).getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-    const novaSolicitacao = await prisma.solicitacao_ferias.create({
+    const novaSolicitacao = await prisma.periodos.create({
       data: {
         MATRICULA: matricula,
         PERIODO_AQUISITIVO: periodo,
         DIAS_SOL: dias,
         TIPO: 1, // ou pegar do req.body
-        STATUS: "PENDENTE",
+        STATUS: 5, // "Solicitado"
         MES: String(new Date(dataInicio).getMonth() + 1),
         ANO: ano,
       },

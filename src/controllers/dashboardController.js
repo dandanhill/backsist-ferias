@@ -88,17 +88,12 @@ export const getFeriasAgendadas = async (req, res) => {
 
 // Solicitações de férias em aberto
 export const getFeriasSolicitadas = async (req, res) => {
-  const meses = [
-    'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO',
-    'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
-  ];
+  const statusEmAberto = 2; // conforme seu mapeamento
 
   try {
-    const total = await prisma.solicitacao_ferias.count({
+    const total = await prisma.periodos.count({
       where: {
-        MES: {
-          in: meses,
-        },
+        STATUS: statusEmAberto,
       },
     });
 

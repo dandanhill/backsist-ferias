@@ -125,33 +125,19 @@ model tipo_user {
   @@schema("sist_ferias")
 }
 
-model solicitacao_ferias {
-  MATRICULA          String  @db.VarChar(32)
-  TIPO               String? @db.VarChar(255)
-  MES                String? @db.VarChar(255)
-  PERIODO_AQUISITIVO String  @db.VarChar(255)
-  SALDO_DIAS         Int?
-  ANO                String? @db.VarChar(255)
-  STATUS             String? @db.VarChar(255)
-  DIAS_SOL           Int
-
-  @@id([MATRICULA, PERIODO_AQUISITIVO])
-  @@schema("sist_ferias")
-}
-
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model ferias_gozo {
   MES_INICIO DateTime @db.Date
-  SALDO      String?  @db.VarChar(255)
-  TIPO       String?  @db.VarChar(255)
-  PERCEPCAO  String?  @db.VarChar(255)
+  SALDO      String   @db.VarChar(255)
+  TIPO       String   @db.VarChar(255)
+  PERCEPCAO  String   @db.VarChar(255)
   ANO        String   @db.VarChar(255)
-  ID         String   @db.VarChar(32)
+  ID         Int
   MES_FIM    DateTime @db.Date
   periodos   periodos @relation(fields: [ID], references: [ID], onDelete: NoAction, onUpdate: NoAction)
 
+  @@id([ID, MES_INICIO])
   @@map("ferias_gozo")
-  @@ignore
   @@schema("sist_ferias")
 }
 
@@ -159,11 +145,11 @@ model periodos {
   MATRICULA_SEM_PONTO          String         @db.VarChar(32)
   PERIODO_AQUISITIVO_EM_ABERTO String         @db.VarChar(255)
   TIPO                         Int?
-  SALDO                        Int?           @map("SALDO ")
+  SALDO_                       Int?           @map("SALDO ")
   PERCEPCAO                    String?        @db.VarChar(255)
-  ID                           String         @id @default(dbgenerated("nextval('sist_ferias.periodos_id_seq'::regclass)")) @db.VarChar(32)
+  ID                           Int            @id @default(autoincrement())
   STATUS                       Int?           @db.SmallInt
-  ferias_gozo                  ferias_gozo[]  @ignore
+  ferias_gozo                  ferias_gozo[]
   status_ferias                status_ferias? @relation(fields: [STATUS], references: [ID_STATUS], onDelete: NoAction, onUpdate: NoAction)
   funcionarios                 funcionarios   @relation(fields: [MATRICULA_SEM_PONTO], references: [MATRICULA_F], onDelete: NoAction, onUpdate: NoAction, map: "periodos_matricula_sem_ponto_fkey")
 

@@ -26,6 +26,7 @@ app.use((req, res, next) => {
 });
 
 // Rotas principais
+
 app.use('/solicitar-ferias', feriasRoutes);
 app.use('/tela', dashboardRoutes);
 app.use('/gerencias', gerenciaRoutes);
